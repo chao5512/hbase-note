@@ -1,0 +1,74 @@
+1.在 hbase-site.xml 中配置 hbase.ssl.enabled 为 true 开启安全HTTP连接
+2.当开启HTTP安全连接后，client side应该避免使用不安全的HTTP连接，具体用https://代替http://
+3.如果client side使用了http://，那么HTTP返回200 without any data，日志中会记录
+	javax.net.ssl.SSLException: Unrecognized SSL message, plaintext connection?
+4.Kerberos 
+5.流程上讲，开启用户验证后，需要管理员定义用户授权规则。
+6.授权系统也称访问控制协处理器 和 访问控制类别（ACL），它可以在table、column、qualify上定义授权策略（读、写、创建、管理）
+7.在高级别，客户端使用keberos访问服务的三个步骤
+	1.keroeros身份验证
+	2.客户机想授权服务器请求一个服务凭单
+	3.使用凭单向提供想要请求的服务所在的服务器进行身份验证。
+
+0.缩写
+AS（Authentication Server）= 认证服务器
+KDC（Key Distribution Center）= 密钥分发中心
+TGT（Ticket Granting Ticket）= 票据授权票据，票据的票据
+TGS（Ticket Granting Server）= 票据授权服务器
+SS（Service Server）= 特定服务提供端
+
+1.配置hbase.security.authentication 的值为kerberos，默认值为simple（SASL），同时在hadoop中
+配置hadoop.security.authentication 的值为kerberos（core-site.xml）只配置hbase的是无意义的。
+2.需要配置一个秘钥分发中心。
+3.服务端的配置,然后重启集群。
+<property>
+  <name>hbase.security.authentication</name>
+  <value>kerberos</value>
+</property>
+<property>
+  <name>hbase.security.authorization</name>
+  <value>true</value>
+</property>
+<property>
+<name>hbase.coprocessor.region.classes（这是一个设置为默认加载到所有region上的协处理器列表）</name>
+  <value>org.apache.hadoop.hbase.security.token.TokenProvider</value>
+</property>
+4.客户端的配置
+<property>
+  <name>hbase.security.authentication</name>
+  <value>kerberos</value>
+</property>
+<property>
+  <name>hbase.rpc.protection</name>
+  <value>privacy</value>
+</property>
+也可以在java代码里写
+Configuration conf = HBaseConfiguration.create();
+Connection connection = ConnectionFactory.createConnection(conf);
+conf.set("hbase.rpc.protection", "privacy");
+try (Connection connection = ConnectionFactory.createConnection(conf)) {
+  try (Table table = connection.getTable(TableName.valueOf(tablename)) {
+  .... do your stuff
+  }
+}
+5.客户端配置Thrift网关安全操作
+<property>
+  <name>hbase.thrift.keytab.file</name>
+  <value>/etc/hbase/conf/hbase.keytab</value>
+</property>
+<property>
+  <name>hbase.thrift.kerberos.principal</name>
+  <value>$USER/_HOST@HADOOP.LOCALDOMAIN</value>
+  <!-- TODO: This may need to be  HTTP/_HOST@<REALM> and _HOST may not work.
+   You may have  to put the concrete full hostname.
+   -->
+</property>
+<!-- Add these if you need to configure a different DNS interface from the default -->
+<property>
+  <name>hbase.thrift.dns.interface</name>
+  <value>default</value>
+</property>
+<property>
+  <name>hbase.thrift.dns.nameserver</name>
+  <value>default</value>
+</property>
