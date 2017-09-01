@@ -33,7 +33,7 @@ SS（Service Server）= 特定服务提供端
 <name>hbase.coprocessor.region.classes（这是一个设置为默认加载到所有region上的协处理器列表）</name>
   <value>org.apache.hadoop.hbase.security.token.TokenProvider</value>
 </property>
-4.客户端的配置
+4.客户端的配置,大概会有10%的性能损失
 <property>
   <name>hbase.security.authentication</name>
   <value>kerberos</value>
